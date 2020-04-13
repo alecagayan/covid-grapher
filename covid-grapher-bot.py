@@ -10,32 +10,24 @@ import platform
 import logger
 import os
 import asyncio
-import discord
-from discord.ext import commands
-from discord.ext.commands import Bot
-import platform
 import sys
-import os
 import random
 import requests
-import urllib.request
 import json
 import time
 import pyowm
 import datetime
 import config
-import matplotlib
-import matplotlib.pyplot as plt
-import pandas as pd
-import urllib
-import urllib.request
 import psutil
 import aiohttp
 from concurrent.futures._base import CancelledError
 import glob
 
-client = Bot(description='covid grapher', command_prefix='##')
-
+client = Bot(description='covid grapher', command_prefix='#')
+filename_state = "/home/pi/not/alcebot/states.csv"
+filename_county = "/home/pi/not/alcebot/counties.csv"
+county_graph = '/home/pi/not/alcebot/plot-county.png'
+state_graph = '/home/pi/not/alcebot/plot-state.png'
 
 @client.event
 async def on_ready():
@@ -50,15 +42,29 @@ async def on_ready():
 
 
 @client.command()
-async def covid(ctx, *, state):
+async def covid(ctx, type, *, state):
+    
+    if(type == "state"):
 
-    urllib.request.urlretrieve("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv", "C:/Users/alec/Desktop/states.csv")
-    df = pd.read_csv("C:/Users/alec/Desktop/states.csv")
-    df_va = df[ df['state'] == state ]
+        if (not os.path.exists(filename_state) or file_age_in_seconds(filename_state) > 3600):
+            urllib.request.urlretrieve("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv", filename_state)
 
-    df_va.plot(x='date', y='cases', label='Cases', linestyle='-', linewidth=4)
-    plt.savefig('C:/Users/alec/Desktop/plot.png')
-    await ctx.send(file=discord.File('C:/Users/alec/Desktop/plot.png'))
+        df = pd.read_csv(filename_state)
+        df_state = df[ df['state'] == state ]
+        df_state.plot(x='date', y=['cases', 'deaths'], label=['Cases', 'Deaths'], linestyle='-', linewidth=4)
+        plt.savefig(state_graph)
+        await ctx.send(file=discord.File(state_graph))
+
+
+    if(type == "county"):
+
+        if (not os.path.exists(filename_county) or file_age_in_seconds(filename_county) > 3600):
+            urllib.request.urlretrieve("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv", filename_county)
+        df = pd.read_csv(filename_county)
+        df_county = df[ df['county'] == state ]
+        df_county.plot(x='date', y=['cases', 'deaths'], label=['Cases', 'Deaths'], linestyle='-', linewidth=4)
+        plt.savefig(county_graph)
+        await ctx.send(file=discord.File(county_graph))
 
 
 client.run('token')
